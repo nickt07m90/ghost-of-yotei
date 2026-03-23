@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Yotei Tracker">
+<meta name="theme-color" content="#1a0f0a">
+<title>Ghost of Yotei Walkthrough Tracker</title>
+<style>
+  :root {
+    --bg: #0e0905;
+    --surface: #1a100a;
+    --surface2: #231508;
+    --border: #3a2210;
+    --accent: #c8820a;
+    --accent2: #e8a020;
+    --gold: #d4a017;
+    --gold-bg: #2a1f00;
+    --gold-border: #a07010;
+    --text: #e8d8c0;
+    --text-muted: #907860;
+    --text-dim: #604030;
+    --green: #4a8a40;
+    --green-bg: #0a1a08;
+    --progress-bg: #2a1508;
+    --progress-fill: #c8820a;
+    --header-h: 80px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(14,9,5,0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding-top: max(var(--safe-top), 12px);
+    padding-bottom: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  #header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  #header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  #header-pct {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 40px;
+    text-align: right;
+  }
+  #progress-bar-wrap {
+    height: 5px;
+    background: var(--progress-bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  #btn-row {
+    display: flex;
+    gap: 7px;
+  }
+  .hdr-btn {
+    flex: 1;
+    padding: 7px 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .hdr-btn:active { background: var(--surface2); }
+  .hdr-btn.resume-btn { background: var(--accent); color: #0e0905; border-color: var(--accent2); }
+  .hdr-btn.resume-btn:active { background: var(--accent2); }
+  .hdr-btn.reset-btn { color: #c05040; border-color: #5a1a10; }
+
+  #content {
+    padding-top: calc(var(--header-h) + max(var(--safe-top), 12px) + 20px);
+    padding-bottom: calc(32px + var(--safe-bottom));
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .section-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    padding: 13px 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    gap: 10px;
+    background: var(--surface);
+  }
+  .section-header:active { background: var(--surface2); }
+  .section-arrow {
+    color: var(--text-muted);
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+    display: inline-block;
+  }
+  .section-block.open .section-arrow { transform: rotate(90deg); }
+  .section-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: 0.3px;
+  }
+  .section-counter {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: right;
+  }
+  .section-counter.done { color: var(--green); }
+  .section-body {
+    display: none;
+    padding: 0 10px 10px;
+  }
+  .section-block.open .section-body { display: block; }
+
+  .chunk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border-left: 3px solid transparent;
+    background: var(--surface2);
+    transition: background 0.15s;
+  }
+  .chunk-item:active { background: var(--border); }
+  .chunk-item.achievement { border-left-color: var(--gold-border); background: var(--gold-bg); }
+  .chunk-item.done { opacity: 0.45; }
+  .chunk-item.highlight-pulse {
+    animation: pulse-highlight 1.5s ease;
+  }
+  @keyframes pulse-highlight {
+    0%   { background: var(--accent); color: #0e0905; }
+    40%  { background: var(--accent); color: #0e0905; }
+    100% { background: var(--surface2); color: var(--text); }
+  }
+
+  .chunk-checkbox {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--text-dim);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    transition: background 0.15s, border-color 0.15s;
+    font-size: 13px;
+    color: transparent;
+  }
+  .chunk-item.done .chunk-checkbox {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+  .chunk-item.achievement .chunk-checkbox {
+    border-color: var(--gold);
+  }
+  .chunk-item.achievement.done .chunk-checkbox {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #0e0905;
+  }
+
+  .chunk-text {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+    flex: 1;
+  }
+  .chunk-item.done .chunk-text { text-decoration: line-through; color: var(--text-dim); }
+  .achievement-tag {
+    display: inline-block;
+    background: var(--gold);
+    color: #0e0905;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="header-top">
+    <span id="header-title">Ghost of Yotei</span>
+    <span id="header-pct">0%</span>
+  </div>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="btn-row">
+    <button class="hdr-btn resume-btn" onclick="resumeWalkthrough()">Resume</button>
+    <button class="hdr-btn" onclick="expandAll()">Expand All</button>
+    <button class="hdr-btn" onclick="collapseAll()">Collapse All</button>
+    <button class="hdr-btn reset-btn" onclick="confirmReset()">Reset</button>
+  </div>
+</div>
+
+<div id="content"></div>
+
+<script>
+var GAME_SLUG = 'ghostOfYotei';
+var STORAGE_KEY = GAME_SLUG + 'TrackerData';
+
+var SECTIONS = [{"title": "Prologue - The Snake", "chunks": [{"text": "Quest Objectives: 1. Kill the Outlaws Abusing the Horse 2. Confront The Snake and Defeat his Men 3. Kill The Snake", "achievement": false}, {"text": "1. Kill the Outlaws Abusing the Horse - Play through the cutscenes until you take control of Atsu in a town in the Yotei Grasslands. Walk towards the group of outlaw throwing rocks at the horse. Confront the outlaws and kill them. Follow the instructions on the screen to learn the basic attack controls!", "achievement": false}, {"text": "2. Defeat The Snake's Men - After defeating the outlaws, head towards the house to confront The Snake. Enemies will come rushing out of the house after that. You will be able to learn about targeting the enemies and blocking at this part of the quest.", "achievement": false}, {"text": "3. Kill The Snake - The Snake will come out of the house to personally fight you after defeating his men. Block all of his attacks until he's out of breath, and then counterattack. You can also keep hitting him until you broke his guard, but he can dodge and try to hit you back, increasing the risk of getting damaged. Once he launches the Charged Attack (Yellow Glint), you won't be able to dodge or block it as it is a scripted event, marking the end of the fight.", "achievement": false}, {"text": "How to Unlock The Snake - The Snake is part of the Prologue and will be unlocked at the start. You will get this quest after writing the names of the Yotei Six members.", "achievement": true}, {"text": "The Snake Rewards - Trophies and Achievements: Trophy: The Snake (Bronze) - Cross the first name off your sash.", "achievement": true}]}, {"title": "Chapter 1 - The Old Inn", "chunks": [{"text": "Quest list: 1. The Old Inn 2. The Way of Dual Katana 3. Saito 4. The Yotei Six 5. The Oni 6. The Kitsune 7. The Saito Brothers", "achievement": false}]}, {"title": "Chapter 1 - Quest 1: The Old Inn", "chunks": [{"text": "1.1 Head to the Old Inn to look for clues about the Yotei Six. You can travel northwest from Atsu's Home to reach the Old Inn. You will be confronted by a Saito Outlaw and ask you to a duel (Standoff) once you get there.", "achievement": false}, {"text": "1.2 After winning the duel, defeat the other outlaws coming after you. There will be waves of enemies, so try to manage your health to survive!", "achievement": false}, {"text": "1.3 You will be able to get a Clue Card for the Saito quest after the battle from the Settler. You can also ask clues about The Saito Brothers, The Oni, and The Kitsune afterward. Note that you can only choose one clue out of the three. You can check out the newly unlocked merchants, such as the Bowyer, Cartographer, and Bounty Broker, before leaving the inn.", "achievement": true}]}, {"title": "Chapter 1 - Quest 2: The Way of Dual Katana", "chunks": [{"text": "2.1 Head towards Mount Yotei to the west until you reach the Mountain Trail. You will encounter enemies along the way, so make sure to defeat them first or you won't be able to proceed.", "achievement": false}, {"text": "2.2 Continue climbing up but be careful of the pit trap along the way. You can also loot a chest containing ingots near the ledge.", "achievement": false}, {"text": "2.3 Once you reach the top, enter Hanbei's House and examine the katana inside to trigger a cutscene. You will then start training with Hanbei after that.", "achievement": false}, {"text": "2.4 Follow Hanbei deeper in the mountain to start the first training. Pick up the sword at the training site to start.", "achievement": false}, {"text": "2.5 Slash the charcoals until you trigger another cutscene and a dialogue event. The story will progress the same regardless of your choice.", "achievement": false}, {"text": "2.6 The next training would be bamboo cutting using Atsu's left hand only. It will be different from the first bamboo cutting you've done, as the controls are all on the left side of the controller.", "achievement": false}, {"text": "2.7 Regardless of the result, the story will progress after cutting the bamboo. Another set of choices will appear and you can choose whatever you feel is right.", "achievement": false}, {"text": "2.8 You will get another chance to cut the bamboo after choosing a dialogue option. The controls are easier this time, but the story will still progress normally even if you make a mistake.", "achievement": false}, {"text": "2.9 You can play through the past after the second bamboo training. Play through it until you reach Atsu's home and trigger the cutscene.", "achievement": false}, {"text": "2.10 Once you're back in the present, you can proceed again with the bamboo training, but the controls will be much easier now. You will be able to increase your Spirit if you've successfully cut all the bamboo.", "achievement": false}, {"text": "2.11 The charcoal training will start again after cutting the bamboo. You will be able to react and slash them faster this time as you are now using two katana. You will learn to use the Dual Katana and unlock that weapon type!", "achievement": true}, {"text": "2.12 Return to Hanbei's House and defeat the outlaws by switching to single or dual katana. You will eventually learn the Tempest Attack once the outlaw spearman appears. The quest will end after the fight and watching the final cutscene.", "achievement": false}]}, {"title": "Chapter 1 - Quest 3: Saito", "chunks": [{"text": "3.1 Travel northeast to reach the Tomamu Marshlands in Tokachi Range. You can start from The Old Inn, which is closest to Tokachi Range if you haven't explored the areas yet.", "achievement": false}, {"text": "3.2 Give the password to the guard at the gate to infiltrate the Fortress. A cutscene will start once you're inside and an outlaw will face you to a Standoff. Don't fall for his feint attacks to win!", "achievement": false}, {"text": "3.3 Head to the gate inside the fortress, located near the stables. You can sneak around the area to reach the gate or fight your way there.", "achievement": false}, {"text": "3.4 Head to the cliff on left until you reach the area after squeezing through the gate. Climb the rock there and jump to reach the small tower.", "achievement": false}, {"text": "3.5 You will be able to use the Spyglass after the cutscene upon reaching the tower. Scan the castle gate first, then look on the left to see where you will be going next. After that, scan the tall grass below so you can proceed.", "achievement": false}, {"text": "3.6 Head to the wooden wall that you spotted using the Spyglass. You can go the long way to avoid the enemies or you can go straight and fight enemies first before leaving.", "achievement": false}, {"text": "3.7 Enter through the crack on the fence and start climbing the cliff. Follow the path until you reach the area close to another gate.", "achievement": false}, {"text": "3.8 Look for the chest on the left of the gates to the castle. Squeeze through the fence behind the chest to find a path leading to the castle.", "achievement": false}, {"text": "3.9 Continue following the path until you reach the open window of the castle. Enter from there to see Saito and his men talking about you.", "achievement": false}, {"text": "3.10 You will get an option to Assassinate Saito, but it will end up in failure. Saito will request a duel and ask you to follow him outside during the cutscene. Be sure to use the Dual Katana so you can take advantage of his slow attacks using the Spear.", "achievement": false}]}, {"title": "Chapter 1 - Quest 4: The Yotei Six", "chunks": [{"text": "4.1 Find a Ronin and defeat them to get information on the Yotei Six. You can find them on specific places on the map.", "achievement": false}, {"text": "4.2 Ask the Ronin about The Oni, The Kitsune, or The Saito Brothers. You can only choose one and you will have to interrogate another Ronin to get info on the other Yotei Six members.", "achievement": false}, {"text": "4.3 The Oni is located in the Ishikari Plain. The starting location should appear on the map once you get the information on him through a Ronin.", "achievement": false}, {"text": "4.4 The Kitsune is residing in the Teshio Ridge region. The starting location for this quest will appear once you get the information on a Ronin.", "achievement": false}, {"text": "4.5 The Saito Brothers are found in Tokachi Range and will show up on the map once you get their info from one of the Ronins. You can get the Odachi while doing this quest.", "achievement": false}]}, {"title": "Chapter 1 - Quest 5: The Oni", "chunks": [{"text": "5.1 Head to the Golden Foothills up north to reach the first gate leading to Ishikari Plain. Once you get there, talk to the guards and they will ask you for a travel permit.", "achievement": false}, {"text": "5.2 You can get the travel permit from the beggar near the gates. He will call you out after talking with the guards. Once your permit has been verified, they will open the gates but there will be several Oni Raiders trying to take you all out. Defend the gate and defeat all the Oni Raiders to progress.", "achievement": true}, {"text": "5.3 Ride your horse and follow Lord Kitamori after the cutscene. You can loot the corpses first before leaving to get extra Coins. You can also grab resources along the way. You will end up in a location where Matsumae Horses are killed. You will need to investigate the horses and find the missing Matsumae Samurai.", "achievement": false}, {"text": "5.4 Follow the footprints and climb the cliff at the end. You will enter a cutscene once you get to the top where you can see the lost Matsumae Samurai getting burned to death by the raiders.", "achievement": false}, {"text": "5.5 Follow Lord Kitamori and defeat all the raiders with him. Try to take out the archers first, as it will be hard to dodge their arrows if you are fighting 2-3 melee fighters at once.", "achievement": false}, {"text": "5.6 Search the Oni Raider Camp and look for food. You can find a red basket with two salmon on the tent to the right.", "achievement": false}, {"text": "5.7 Head to the camp fire to build a fire and cook the fish. You will need to use the touchpad to light up the fire and cook. A cutscene will start playing and you will find that Lord Kitamori is your long lost brother, Jubei.", "achievement": false}, {"text": "5.8 Leave the camp and ride the horse again and head for the Ishikari Plains. You will encounter several Oni Raiders at the gate. You will start a solo battle against the Oni Raider Ambusher after the cutscene, and it will become a free-for-all after winning the fight.", "achievement": false}, {"text": "5.9 Head to the Matsumae Clan Camp after defeating all the Oni Raiders. Jubei will leave you for a bit to talk to Commander Wada. You can try talking or doing different activities at the camp, like bamboo cutting, before proceeding. You will be able to get the Clan Matsumae Helmet and increase your Spirit when you do the bamboo cutting.", "achievement": false}, {"text": "5.10 Talk to Jubei and Commander Wada and head to the Ishikari Plain to survey it using the Spyglass. Look towards northwest to find the market that Jubei mentioned. Look over the Ishikari Castle next just above the market. You can then look over the west side and survey the island there to know where to find the Yari (Spear) master. (Optional) You can try to learn the Yari first before continuing with the quest. This is not required, but it wouldn't hurt to have another weapon to your arsenal, especially the boss fight with The Oni himself.", "achievement": false}, {"text": "5.11 Head to the Ishikari Market and examine the Bounty Board. Take the Traitorous Raider Mad Goro Bounty and defeat the raiders after the cutscene. This bounty is part of the quest and you have no choice but to take it to progress.", "achievement": false}, {"text": "5.12 Eavesdrop the group of people to obtain information on Mad Goro once you get inside the bar. Defeat the raiders that will appear and head to Iwami Village with Jubei.", "achievement": false}, {"text": "5.13 Follow the guiding wind to reach Iwami Village quickly. Talk to the villagers once you get in the village and investigate the gunshot they mentioned. It will lead you to Mad Goro's Camp where bounty hunters will appear. Defeat them and continue looking for Mad Goro.", "achievement": false}, {"text": "5.14 Your investigation will lead you at the end of the river where an Oni Raiders camp can be found. Defeat the raiders and go uphill to a nearby camp to see Mad Goro. He will shoot at you before fleeing with a horse.", "achievement": false}, {"text": "5.15 Ride your horse and chase after Mad Goro. Mad Goro will throw bombs and shoot you with the musket during the chase. Dodge and get close to him while Jubei distracts him.", "achievement": false}, {"text": "5.16 Mad Goro uses a burning stick, kusarigama and a katana against you. Beware of attacks from his burning stick or his kusarigama especially if it is lit on fire to avoid burning and taking too much damage. Once defeated, you will interrogate Mad Goro and complete the bounty and his side tale.", "achievement": false}, {"text": "5.17 Talk to Jubei near Ishikari Market after capturing Mad Goro and start infiltrating the castle.", "achievement": false}, {"text": "5.18 Follow The Oni and get your rewards inside the castle. Choose the Scabbard (Saya) on the right and take it as your reward. The Oni will also give you coins during the cutscene.", "achievement": false}, {"text": "5.19 Survey the castle after talking to The Oni. Look at the house on the hill to see the prisoner who tried to escape. Look at the house behind her next, then check the Jailer (Kanta) watching in the arena after.", "achievement": false}, {"text": "5.20 Approach Kanta to try stealing the keys and defeat him in battle. Kanta uses a Kanabo and will attack you with unblockable swings and charges. Try to dodge and counterattack once he stops attacking to damage him. Once his HP is at 50%, you will have a chance to disarm him to limit his attacks. Help him get up and take the keys after he falls down.", "achievement": false}, {"text": "5.21 After defeating Kanta, retrieve your weapons first before rescuing Jubei. Head to the stables and take your weapons from your horse.", "achievement": false}, {"text": "5.22 Crouch and move to the right side of the fortress wall after getting your weapon. Go to the rock and walk on the rope to avoid getting spotted. Enter through the crack on the wall after crossing the rope.", "achievement": false}, {"text": "5.23 Climb the tower on the right and assassinate the raider at the top. Walk on the rope after and jump on the ledge.", "achievement": false}, {"text": "5.24 Go to the right side using the bushes while still crouching. Get behind the house and exit through the broken wall.", "achievement": false}, {"text": "5.25 Climb up after exiting through the broken wall. Keep hidden and go around in front of the mine entrance until you reach the Matsumae prisoner. Note that there are two enemies in front of the gate, near the Matsumae prisoner.", "achievement": false}, {"text": "5.26 Climb the short cliff behind the Matsumae prisoner and turn right to see Jubei's cell. Unlock it, play through the cutscene, and break the back of the cell.", "achievement": true}, {"text": "5.27 Break the cell to get behind the cliff and follow Jubei as he will take the lead here. He will stop on a part where you have to jump, and him taking the lead will stop here as well. Climb on the cliff after jumping until you reach the back of the castle. After that, climb the bamboo walls with Jubei to get inside the castle.", "achievement": false}, {"text": "5.28 The Oni will get a sniff of your plan and stop you when you enter the castle. The Oni will throw you out and send his men to come after you. Follow Jubei and parkour around the castle to escape. Ride your horse and charge through the enemies to avoid getting stopped on the way. Note that it consumes Spirit for continuous use, so only use it whenever needed.", "achievement": false}, {"text": "5.29 Return to the Matsumae Camp, but you will not be allowed to go in. Go around the camp until you see the bridge to find another way. Climb the bridge from below and make your way to the other side until you see a scalable cliff. Climb the cliff to see the whole camp and plan your next move.", "achievement": false}, {"text": "5.30 Use the Spyglass to see a hidden entrance to the camp. Look to the right (northeast) while using the Spyglass to see an open wall that will lead you inside the camp. After that, look at the camp and look for Goro being taken back to his cell. You will need to scan the place where he will be taken, so you can take control of Atsu again.", "achievement": false}, {"text": "5.31 Enter through the fence that you surveyed earlier. Talk to Mad Goro and then go inside his cell by destroying the planks on the roof. After that, go down and destroy the wall to free Mad Goro.", "achievement": false}, {"text": "5.32 Oni Raiders will start raiding the camp after coming out of the cell and talking to Jubei. Defeat them all together with the Matsumae Clan.", "achievement": false}, {"text": "5.33 You will be fighting solo from this point forward. Defeat raiders as you make your way through their Bo-Hiya (cannon). You will need to defeat all the raiders there to take control over the Bo-Hiya. Once you've got control of the Bo-Hiya, use it to destroy the other Bo-Hiya to progress.", "achievement": false}, {"text": "5.34 After destroying the Bo-Hiya, go to Jubei on the bridge through the cliff. Defeat the raiders on the way until you reach Jubei on the bridge. More enemies will come once you get reunited with Jubei. Kill them all to trigger the cutscene that will let you fall off the bridge with Jubei.", "achievement": false}, {"text": "5.35 Go to the Northern Matsumae Camp and talk to Jubei. Leave the camp and head for the Azure Wind Shrine to look for Mad Goro. You won't be able to reach the shrine using normal means, so you'll have to find another way around.", "achievement": false}, {"text": "5.36 Go to the left side and climb the cliff with Jubei. Follow the path until you see the group of ronin in the area.", "achievement": false}, {"text": "5.37 Kill the group of Ronin via assassination or head on fight. Head to the bridge after but it will be inaccessible due to the debris. Head to the left and go to the nearby cliff using the rope. After that, jump towards the cliff near the bridge and use the rope again to get across.", "achievement": false}, {"text": "5.38 Clear the debris on the bridge using your rope to make it accessible. Wait for Jubei to cross and continue your way to the shrine.", "achievement": false}, {"text": "5.39 Follow the path and head inside the cave. Destroy the wooden fence blocking the path to progress. Follow Jubei but you will end up on a different path once you cross the bridge.", "achievement": false}, {"text": "5.40 Exit the cave after falling off the bridge. Work your way around the mountain to reunite with Jubei.", "achievement": false}, {"text": "5.41 Continue climbing to the top to reach the summit where the shrine is located. You will see Mad Goro as soon as you reach the top.", "achievement": false}, {"text": "5.42 Although Atsu's raring to catch Mad Goro, you will have to follow the shrine rules first. Wash your hand and mouth, and then honor the shrine with Mad Goro and Jubei. You will be able to get the Charm of Hachiman and the Oni's Flame afterward.", "achievement": false}, {"text": "5.43 Defeat another group of ronin with Jubei and Mad Goro. You can test out the Oni's Flame to burn enemies as you slash them. Escape the shrine after defeating them, but be careful as more will come. Follow your way back until you reach the cliff where you can see your horses.", "achievement": false}, {"text": "5.44 Head further north and meet Jubei on the coast. You will be able to go below the Ishikari Castle by the boat after the cutscene.", "achievement": false}, {"text": "5.45 Follow Jubei until you reach the mines and the part where you can be boosted to the wall. Once you reach the top, look for the bamboo where you can attach your rope to destroy it. You will be able to grab Jubei from there. Keep following Jubei after until you reach the outside.", "achievement": false}, {"text": "5.46 Continue your way up to the Ishikari Castle using the wooden platforms, logs, and scalable rocks. You will end up in another entrance leading inside the mines, but there will be tons of raiders this time.", "achievement": false}, {"text": "5.47 Once inside the mine, defeat all the raiders and free the prisoners. They will help you fighting the enemies in the next area.", "achievement": false}, {"text": "5.48 Open the gate and defeat the rest of the guards to free up more prisoners. Continue doing this until you reach the castle. You will have to fight more raiders here and battle Kanta one more time. His moveset will be the same and you will be able to use your weapons, so it shouldn't be difficult this time.", "achievement": false}, {"text": "5.49 The Oni 1st Phase: Enter the castle and defeat The Oni. The Oni uses an Odachi, which has a good range and a balanced mobility. Try to attack only when you get a chance or you might get damaged. Most of his attacks can be parried, so try to block at the perfect time to stagger him and sneak some hits in. You can try to use the Oni's Flame for extra damage. Rinse and repeat until you deplete his health!", "achievement": false}, {"text": "5.50 The Oni 2nd Phase: The Oni will use Oni's Flame and light up his Odachi in the second phase. He will be able to burn you if you get hit and leave the ground burning to damage you when you walk on it. The fire will go out from his Odachi and on the ground from time to time. Use that chance to go on offensive and try to end the fight!", "achievement": false}]}, {"title": "Chapter 1 - Quest 6: The Kitsune", "chunks": [{"text": "6.1 The Central Ferry is located northeast of the Old Inn and is quite a ways. Ride your horse and follow the Nupur River until you stumble upon some people around a campfire. At the campfire, talk to huci, the ferrywoman, and ask to ride northward to Nayoro Wilds where the Kitsune was last seen.", "achievement": false}, {"text": "6.2 Upon arriving at the North Ferry and unlocking some side quests like the Heart of an Ainu, mount your horse and ride northward to Teshio Ridge. You'll know you've reached your destination when you see a commotion ahead.", "achievement": true}, {"text": "6.3 Dismount your horse and speak with the merchants once you arrive. Ride with the merchants and listen to their conversation about reaching the Red Crane Inn. Eventually, you will be ambushed in the snowstorm by shinobi in white, so take up your sword and defeat them.", "achievement": false}, {"text": "6.4 After the cutscenes, you'll wake up to all the merchants killed and you being the sole survivor. Continue to trudge forward and into the cave ahead to seek shelter. Start a fire inside the cave and a cutscene will play.", "achievement": false}, {"text": "6.5 Once the storm clears up, mount your horse and ride to the Red Crane Inn. You can use the onsen they have prepared, but you need to go into the inn's main hall, which also happens to be filled with Matsumae samurai. Take a seat and eavesdrop on the samurai just up ahead. Approach them and offer to play Zeni Hajiki to glean more information on the Kitsune. They will instruct you to speak to their commander upstairs, but to no avail.", "achievement": false}, {"text": "6.6 Without any useful information, return downstairs for a cutscene involving Oyuki, the songstress. The samurai will get rowdy, so knock them all unconscious in a massive fistfight, then speak to Oyuki.", "achievement": false}, {"text": "6.7 Exit the Red Crane Inn and speak to Oyuki outside. You will get more clues about The Kitsune, the organization they run called the Nine Tails, and how they've been terrorizing the villages nearby. Observe the points of interests marked by a glowing white dot. Afterwards, Oyuki will ask you to ride with her, so agree to do so.", "achievement": false}, {"text": "6.8 Follow the Nine Tails until you lose them but come across an actual fox. Follow the fox and defeat the Nine Tails who will ambush you. After that, take the map with a marked location.", "achievement": false}, {"text": "6.9 The map acquired from the Nine Tails will point to a location directly southeast of Atsu's position. Make your way there until you come across a wooden gate. Go through it and follow the trail ahead until you reach a shrine with 4 lanterns in front of it.", "achievement": false}, {"text": "6.10 The fox lantern by the shrine is pretty easy. Simply grab the torch nearby and only light the lanterns with the foxes on top of them. Once complete, a crawlspace under the shrine will open, so go through it. Brace yourself as a fight with the Nine Tails will ensue. Defeat them and press forward.", "achievement": false}, {"text": "6.11 After the battle, examine the gate to find two empty pedestals, and beside them are fox statues with their heads looking up and a paw raised. Look around for the missing fox statues as they should just be nearby. Facing the door, the fox with the left paw raised goes to the right side of the gate, while the one with the right paw raised goes to the left. Once Atsu confirms that it did something, open the door and proceed onward.", "achievement": false}, {"text": "6.12 Move forward and climb the handholds that will be immediately to your right.", "achievement": false}, {"text": "6.13 Open the chest in front of you, then proceed forward. Look to your left to spot the handholds, then climb them all the way to the top.", "achievement": false}, {"text": "6.14 Move forward a bit and spot the kitsune lantern on the other side of the gap and a slackline next to it. Jump over the gap and cross the slackline, then jump to the beam areas by using the branch to get to the starting point.", "achievement": false}, {"text": "6.15 Follow the kitsune lanterns and make your way past the beams. You might need to climb some handholds and use your grapple for this. Once at the end, grapple onto the branch above and drop down onto the training grounds proper.", "achievement": false}, {"text": "6.16 Enter the dojo and examine the scroll within. Brace yourself as the Nine Tails will spawn to try and stop you.", "achievement": false}, {"text": "6.17 Defeat the waves of Nine Tails shinobi in your way. Afterwards, return to the scroll to find a cipher for the symbols they use. Copy the cipher by swiping on the touchpad as prompted to keep it as a reference. A good way to remember this cipher without looking is by acknowledging that it resembles the Playstation icons - Triangle for Up, X for Down, Square for Left, and Circle for Right. Avoid puzzle elements marked with the Death symbol.", "achievement": false}, {"text": "6.18 Time to put the cipher to the test. Spot the door with the forward symbol below it, and see that it's framed by two kitsune statues. Pay attention to the symbols on the door frame behind them. Interact with the left kitsune statue with the engage symbol behind it to unlock the door, then proceed. Defeat the Nine Tails shinobi that will try to stop you.", "achievement": false}, {"text": "6.19 Approach the central kitsune to get some clues about how to solve this puzzle. Pay attention to the symbols at its base, then proceed to the surrounding kitsune statues.", "achievement": true}, {"text": "6.20 Each kitsune statue apart from the central one has a symbol on its base and can be rotated to face a certain direction. Rotate the leftmost one to face right. Rotate the left one to face forward (down). Rotate the right one to face backward (up). Rotate the rightmost one to face left.", "achievement": false}, {"text": "6.21 A ladder will descend from the upper building upon completing the kitsune statue puzzle. Climb it and proceed inside the upper building to find the Nine Tail Armor. Pick it up, put it on, and proceed forward. Open the door with the engage symbol on it, then follow the trail all the way to the end to conclude this subquest and proceed to the next part.", "achievement": false}, {"text": "6.22 Travel back to the Red Crane Inn and return to Oyuki with new information about the Kitsune. In exchange, she'll present you with an opportunity to gather more. Follow Oyuki upstairs and she'll lead you to a secret passageway where you can use to eavesdrop on Commander Fujita. You'll learn that the Matsumae samurai have an informant named Chosuke, and you should find him for more intel.", "achievement": false}, {"text": "6.23 Oyuki will distract Commander Fujita, so you should go into the room and investigate. Examine the letter on the table to learn that Chosuke is at the Nakajima Sake House. Another letter from mistresses on the bed, and the final note with Nine Tails symbols should be above the cabinet at the far side of the room. Leave the room with Oyuki and she'll tell you she has a plan to glean information from the sake house's proprietor.", "achievement": false}, {"text": "6.24 Mount your horse and ride with Oyuki to Nakajima Sake House. Along the way, she'll tell you of a plan to be disguised as waitresses to throw trackers off your scent and find Chosuke easier. Dismount your horse and you'll get changed immediately. Enter the sake house and perform with Oyuki while eavesdropping on the patrons. You'll learn that Chosuke is well off at the moment, he's been here since morning, and that he's likely upstairs gambling.", "achievement": false}, {"text": "6.25 Follow Oyuki upstairs. Along the way, she'll give you an emetic that you must put into Chosuke's drink should he make an order. Climb up to speak with Chosuke, and he'll ask for a refined drink. Go to the wine rack by the wall opposite Chosuke's table and choose the smooth sake. Put the emetic in the sake and serve it to Chosuke. Follow him outside and he'll reveal to you that the symbol in the letters found in Commander Fujita's room came from a dye house near the river whose owner has been acting strange as of late.", "achievement": false}, {"text": "6.26 Oyuki knows where the dye house is so simply follow her to it. Enter the central building to find signs of a struggle and nothing else. Go to the dye storage and spot familiar symbols on the dye lids, kitsune statues, and pedestals with more symbols.", "achievement": false}, {"text": "6.27 Simply pick up the kitsune statues and place the one facing left on the left pedestal with the left symbol, and the other one on the right with the right symbol to complete the puzzle.", "achievement": false}, {"text": "6.28 Next, rotate the lids in accordance to the symbols on them. Rotate the left lid to face left, and the right lid to face right. This should open the middle lid that leads to a hidden passage.", "achievement": false}, {"text": "6.29 Keep following the path ahead until you reach a chamber with Nine Tails shinobi and the dye master in a cage. Kill all the shinobi in the area, unlock the cage, and speak to the dye master. She'll tell you that the other hostages are held deeper in the hideout, so set off and rescue them.", "achievement": false}, {"text": "6.30 Interact with the fox statue by one of the cages to release a slackline to the other side, which you can use to cross.", "achievement": false}, {"text": "6.31 Jump across the beams to the other side to proceed further.", "achievement": false}, {"text": "6.32 Follow the path ahead and go through the crawlspace until you reach a wooden barricade. Use your grappling hook to pull it out of the way, then squeeze through the gap in the wall.", "achievement": true}, {"text": "6.33 Look up to the ceiling ahead to spot a grapple point. Latch onto it and swing across.", "achievement": false}, {"text": "6.34 Jump across the final set of beams and you will be where the hostages are being kept.", "achievement": false}, {"text": "6.35 There will be two entrances you can take here - one through the door on the left and one through the open entrance to the right. Both will ultimately lead to the same area. Defeat the wave of Nine Tails shinobi camped near each cage. You'll find that all the hostages are dead. However, pay close attention to the fox statues near each cage and the symbols behind them.", "achievement": false}, {"text": "6.36 The gate to the next area is locked behind a puzzle involving kitsune statues in poses and different emotions: proud (standing), joyful (looking up), angry (crouched completely down), and scared (back arched). Based on the clues given by the foxes near the cages, don't move the proud statue, turn the joyful statue to the right, turn the angry statue to the right, and turn the scared statue to the left.", "achievement": false}, {"text": "6.37 Enter the chamber beyond and a cutscene will play. You will then acquire the Kitsune's Puzzle Box, which will prompt you to return to Oyuki and the dye master with your findings. A cutscene will play where Oyuki will help you solve the puzzle box, revealing a list of ingredients for a type of poison inside.", "achievement": false}, {"text": "6.38 Find Oyuki directly northeast after revealing the ingredients for a poison. If you see a wooden gate crawling with soldiers, veer offroad to the right and climb up the hill that overlooks the compound and Oyuki will be there. The Matsumae will be alerted on the Kitsune's presence thanks to Chosuke. Observe points of interest in the sentinel camp below to gather more clues, then spot your entrance to the Nine Tails harvest site at the far end of the compound.", "achievement": false}, {"text": "6.39 You and Oyuki will then enter the compound. Stick close to her to avoid raising suspicion, then wait behind the bamboo walls until she convinces the guard by the opening in the fence to move. Squeeze through the gap and Oyuki will follow shortly after. Follow the bamboo grove all the way to the end, but pay attention as the path will be littered with symbols from the cipher.", "achievement": false}, {"text": "6.40 Examine each fox on the pedestals and notice their poses: 2 completely crouched down foxes on either side of a howling one.", "achievement": false}, {"text": "6.41 Grab the torch from the brazier nearby and light the lanterns with the kitsune on top of them posed accordingly.", "achievement": false}, {"text": "6.42 The final step to this puzzle is putting the puzzle box onto the empty pedestal in front of the three kitsune statues. Proceed into the forest afterwards.", "achievement": false}, {"text": "6.43 Proceed further inward and brace yourself for another ambush by the Nine Tails. Defeat them all and observe the surroundings. Three shrines with fox statues that correspond with the interactable ones will be present with symbols. Use them as clues and rotate the fox statues accordingly. Then follow the path ahead.", "achievement": false}, {"text": "6.44 Pay attention to the symbols on each rock and notice the death symbol with a directional symbol, telling you where the traps are. Simply avoid going the indicated direction and follow Oyuki through the trap fields all the way to the other side. Squeeze under the crawlspace and follow the path ahead.", "achievement": false}, {"text": "6.45 When you reach a large wooden gate framed by 4 fox statues, simply switch the places of the two inner foxes to unlock it, then proceed further inward with Oyuki. Keep following the cave to the end and remove the wooden barricade to squeeze through. Keep pushing forward and defeating the ambushing Nine Tails shinobi along the way.", "achievement": true}, {"text": "6.46 This time, it's your turn to lead Oyuki through the traps. Pay attention to the direction symbol on the base of the statues and avoid going there. Go to the left of the statue, to the right of the rock, then straight to safety. Safely make your way to the other side and proceed further inward.", "achievement": false}, {"text": "6.47 Cross the beams in the next area, then try to open the gate at the end only to find that it's locked. Look to the right of the gate to spot a cliff you can boost Oyuki up to, so approach it and do so. You and Oyuki will arrive at the harvesting site proper. Use your spyglass to spot the Kitsune, but Commander Fujita will launch an all-out assault.", "achievement": false}, {"text": "6.48 The Kitsune will attempt to escape. Slide down immediately, ignore the ensuing battles, and head straight for the Kitsune. Observe your path as there will be turns that you may miss. Once inside, attempt to face the Kitsune in a battle. However, this is not a winnable duel. Face him long enough until a cutscene ensues.", "achievement": false}, {"text": "6.49 You will be infected with the Wolfsbane Toxin by The Kitsune, which will send you in a daze and render you unable to fight. Follow Oyuki and listen to the revelations whispered to you by the Kitsune.", "achievement": false}, {"text": "6.50 You can find Oyuki in the Old Graveyard southeast of your current location. She will be playing her shamisen in a clearing lined with graves. Speak to her and engage in a duel. Reduce her health to 50% and a cutscene will play. Follow her to the hill by her hideout and she will reveal everything about her past, as well as more information about The Kitsune, how to resist the toxin, and more of Saito's weak spots.", "achievement": false}, {"text": "6.51 Oyuki will introduce you to the Listen ability, which allows Atsu to tell where enemies are, even through walls. Press R3 to listen to your surroundings and answer Oyuki's questions. After you get the hang of it, use the Listen ability to try and find her. Once you hear her behind the rocks in the distance, approach her.", "achievement": false}, {"text": "6.52 Follow Oyuki back to her hut and grab some incense, then follow her back out to the graveyard and tend to the graves. Do so, and she'll tell you the tale of her past as The Kitsune. Afterwards, ride with her, but you'll stop just short of an ambush. Use the Listen ability to ascertain the location of the ambushers. She'll then give you the smoke bombs, which will permanently unlock it in your inventory. After that, proceed to kill all the ambushers. Search their bodies to find out where they came from after killing them, and continue to ride with Oyuki to the tannery.", "achievement": false}, {"text": "6.53 With the new tool and ability at your disposal, put them to the test by clearing out the abandoned village of Nine Tail shinobi. Most of them will be lurking in bushes, so follow suit and use the cover of the fog to take them out one by one. After doing so, Oyuki will ask you to set up camp by the firewood nearby. Cook some food, watch the cutscenes, then continue your journey with Oyuki in the morning.", "achievement": true}, {"text": "6.54 Return to the Old Graveyard with Oyuki and she'll ask you to light the braziers lining the clearing that are tainted with the Wolfsbane Toxin. Follow her instruction to learn how to resist the toxin on your own. You will then engage in a duel with Oyuki for the second time. Defeat her, and you will reconcile with her afterwards. In the morning, find Oyuki playing her shamisen in the clearing, and you'll seal your partnership with a song.", "achievement": false}, {"text": "6.55 To begin your hunt for Dojun, the real Kitsune, return to the Red Crane Inn. Speak to Oyuki who got there before you to find out what happened. Afterwards, investigate the inn for clues on where Dojun might have headed. Use the Listen ability to find the child Shunpei upstairs. Approach him and speak to him.", "achievement": false}, {"text": "6.56 Travel with Oyuki to a frozen waterfall in Teshio Ridge. Inside, you'll find a locked gate lined with blue braziers and kitsune statues with yellow braziers. Light up the kitsune braziers and look below them to find symbols. Simply rotate them to the direction indicated, then proceed inward.", "achievement": false}, {"text": "6.57 Nine Tail shinobi will be stationed all over the clearing below. Assassinate all of them with Oyuki who will support you by killing her own share. Once that's done, investigate the displayed map with Oyuki. Afterwards, go through the door, climb the wall, and follow a path to a wide open clearing where Nine Tails are waiting. Either use your Listen ability to hunt them down silently or defeat them face to face in battle. More Nine Tails will try to impede your progress so cut them all down. Once the Nine Tails are decimated, all that's left is to push forward and deal with Dojun himself.", "achievement": false}, {"text": "6.58 The Kitsune Boss Fight: The Kitsune has a lot of tricks up his sleeve, such as disarming you, using smoke bombs to hide from view, and switching weapons to match your equipped gear. Be careful and opt for defense rather than offense. Save up your Sake for Spirit and your Spirit for emergency healing.", "achievement": false}]}, {"title": "Chapter 1 - Quest 7: The Saito Brothers", "chunks": [{"text": "Note: The Saito Brothers quest starts with the Way of the Odachi on Chapter 1, but you cannot finish it on this chapter. It extends to Chapter 2 and you will be able to finish it there. You will need to finish the Way of the Odachi, The Oni questline and The Kitsune questline to get to Chapter 2.", "achievement": false}, {"text": "7.1 After interrogating a Ronin about the Saito Brothers, head northwest from Clan Saito Training Fortress to reach Master Yoshida's Dojo near Horosaru Falls.", "achievement": false}, {"text": "7.2 Approach Master Yoshida by the small bridge leading to the dojo and engage in a conversation. Afterwards, follow him and pick up the Odachi.", "achievement": false}, {"text": "7.3 Follow Master Yoshida to the training area and practice using the Odachi with him. During this sequence of events, you'll learn the basic block, normal attack, and heavy attack of the Odachi, to get the feel of how the weapon will be used in battle. A cutscene will trigger afterwards, where you'll begin sparring with the other dojo members until daytime.", "achievement": false}, {"text": "7.4 Speak with Master Yoshida after the cutscene, and practice switching your weapons in the loadout. Saito's men will approach the dojo, and this will be the first time you'll use the Odachi in battle. Luckily, it'll just be one giant enemy you'll face for you to practice using the Odachi in real combat. After the duel, more of Saito's forces will join the battle, but you will get help from the students at the dojo. Defeat Saito's men and it will trigger a cutscene afterwards.", "achievement": false}, {"text": "7.5 Follow Master Yoshida on foot. From the dojo, get past the bridge and turn left towards the mountain's edge. Climb to the top using the hand and foot holds.", "achievement": false}, {"text": "7.6 Cross the wooden platform to get to the other side of the waterfall, and climb the mountain again. You'll encounter a camp filled with Saito's men at the top.", "achievement": false}, {"text": "7.7 Clear the area of Saito's men before proceeding the climb. Aim to take out the musketeers first, as they deal high damage if you get shot. It's better to execute this with a ranged weapon like the bow, since you won't have to go past the melee soldiers to reach the musketeers.", "achievement": false}, {"text": "7.8 Climb the cliff by the mini waterfall after defeating the enemies, and you'll encounter a Bo-Hiya Gunner. Run and cross the ledges to reach the gunner and defeat him. You can't hit him with arrows, since he's covered in armor.", "achievement": false}, {"text": "7.9 Use the Odachi to defeat the Bo-Hiya Gunner. You can also open the yellow chest nearby to loot resources. Afterwards, interact with the blockade by holding R2, then pointing the L-stick downward once prompted. This will destroy the blockade, allowing you to squeeze through the other side.", "achievement": false}, {"text": "7.10 Once you get past the first waterfall, traverse through the ledges until you reach the final camp of Saito's men in the mountain while avoiding the explosives fired by them.", "achievement": false}, {"text": "7.11 Defeat all of the enemies in the area while focusing on the Bo-Hiya gunners first. A cutscene will ensue after the fight, and ends the quest after. You can proceed with following Master Yoshida to continue the Way of the Odachi.", "achievement": false}]}, {"title": "Chapter 2 - The Onryo (Saito Brothers Continuation)", "chunks": [{"text": "Note: The Saito Brothers quest continues on Chapter 2 after you complete The Oni and The Kitsune questlines and the first subquest (Way of the Odachi). You can continue this quest, starting on the Ghosts of the Past subquest.", "achievement": false}, {"text": "CH2-1 Return home to find Jubei standing by the central tree. Speak to him to watch the flashbacks from that fateful night with the Yotei Six. Continue following him around your home, looking out over hills and even playing zeni kajiki with him. The final cutscene in this sequence will be introducing Oyuki to him, to which he will react violently. The Saito Brothers will be on the move to attack Castle Matsumae, and he will rush there to help.", "achievement": false}, {"text": "CH2-2 Ride to the Oshima Coast Gatehouse to meet up with Jubei and offer him assistance. Oyuki will already be there so open the gate together and find Matsumae corpses scattered about. You need to find your brother, and fast.", "achievement": false}, {"text": "CH2-3 You and Oyuki will rush to meet Jubei at a ruined village and he will brief you of the situation. Ride with him and his infantry to confront Saito's outlaws. You will be introduced to the Horse Charge ability, so hold L1 and R1 simultaneously to charge through the wall of gunners blocking your path. Afterwards, cut down all the remaining enemies.", "achievement": false}, {"text": "CH2-4 After the initial wave of enemies, continue onward until you reach a cliffside manned by shield gunners. Use the covers provided and wait until the gunners reload, then either move from cover to cover until you reach them to dispose of them, or use your bow to kill them from a distance. Backup will soon arrive, so cut them down as well.", "achievement": false}, {"text": "CH2-5 Once the wave of enemies has been dealt with, follow the path until you reach a gap in the wall you can squeeze through to the battlefield proper. Use this opportunity to observe the battlefield's point of interests and strategize your approach before storming the Saito Brothers' armies.", "achievement": false}, {"text": "CH2-6 The group will ultimately decide to use the cover of night to reach the gate. You can fight them head-on or follow the plan and reach the gate covertly. Try to assassinate with Oyuki or use the Chain Assassination technique to kill multiple enemies at once.", "achievement": false}, {"text": "CH2-7 Jubei will ask you to cover for him and give you the Tanegashima. Perched on the roof, wait for Jubei to approach the soldiers then scope out the explosive barrels in the distance to temporarily distract your enemies. Keep providing support from above using the Tanegashima to take out the enemies. It should only take them one or two shots to kill them.", "achievement": false}, {"text": "CH2-8 Go to Benten Port and speak to the Matsumae on the horse. He'll escort you to Matsumae Castle where Jubei and Kiku are waiting for you. As Jubei reports to his commander, Kiku will ask for your help in picking flowers for her arrangement.", "achievement": false}, {"text": "CH2-9 Check the surrounding flowers and help pick some for Kiku's flower arrangement, paying attention to what each symbolizes. Once you pick three, place them in the vase. Kiku will then ask you to follow her to a horse that she helped save. She'll then lead you to the armory's entrance where people are flocking, demanding medicine. Kiku will ask for your help in breaking into the armory to acquire medicine for those in need.", "achievement": false}, {"text": "CH2-10 Follow Kiku into the armory's entrance where she'll distract the guards and send them away. Attempt to open the large gate to the armory to find it locked, prompting you and Kiku to find another way around.", "achievement": false}, {"text": "CH2-11 Turn around to find a slackline you can grapple onto. Do so and use it to get to the wooden scaffolding ahead.", "achievement": false}, {"text": "CH2-12 Grapple onto the second slackline and cross over to the roof ahead.", "achievement": false}, {"text": "CH2-13 Drop down onto the platform below and pick Kiku up.", "achievement": false}, {"text": "CH2-14 Spot the frayed wooden wall in front of you. Boost Kiku up to the storage room area, but you'll be too heavy for her to pick up. You'll have to find another way around.", "achievement": false}, {"text": "CH2-15 Look to the left and spot a bamboo barricade with a gap you can squeeze through, so do so.", "achievement": false}, {"text": "CH2-16 Look to your right and spot a grapple point. Swing across to the wooden scaffolding and hop onto the beam just ahead. Cross the beam and spot another grapple point at the top of the ledge ahead. Latch onto it and climb up.", "achievement": false}, {"text": "CH2-17 Go around the storage room, speaking to Kiku if you wish, then drop down and use the handholds by the side of the cliff face to get to the entrance of the storage room. Pull up and enter once you're there.", "achievement": false}, {"text": "CH2-18 Enter the storage room with Kiku, climb the second floor, and grab the medicine.", "achievement": false}, {"text": "CH2-19 You'll eventually be caught red-handed, but the soldiers will let it slide thanks to Kiku. You will be informed that Commander Wada wishes to speak to you in the keep, so follow the soldier there. You will then be briefed on the plan to take back the Hadokate Lighthouse and take the Dragon's head.", "achievement": false}, {"text": "CH2-20 Ride with Jubei to the Hadokate Lighthouse. He'll tell the Matsumae to position themselves by the entrance while he leads you to an overlook to the left. Climb the rocks with him and observe the lighthouse compound with your spyglass. After finding the Dragon, the assault will begin. Slide down and cut down any enemy that stands in your way.", "achievement": false}, {"text": "CH2-21 Defeat all enemies and pursue the Dragon beyond the gate. The best way to clear this area quickly is to secure the Cannons (Bo-Hiya) near the gate. You can ignore the gunners but make sure to use the cover while going for the cannons. Watch out for the firing command before moving to avoid getting hit. Watch the brief cutscene, then rush to the lighthouse. Make sure to dodge away from the Dragon's bullet, then pursue him into the lighthouse. You'll clash but he'll escape, leaving the lighthouse to the Matsumae. This will conclude the subquest.", "achievement": false}, {"text": "CH2-22 Travel to Matsumae Castle and enter Jubei's house where you will all convene about the next steps to taking down the Saito Brothers. A way to lure out the Dragon is by seizing the Spider at the Tamura Estate, now turned drug den and brothel. Speak to Jubei outside if you wish, then ride to the gardens near the estate and meet Oyuki.", "achievement": false}, {"text": "CH2-23 Meet with Oyuki at the forest near the Tamura Estate. She'll brief you on the situation, then mount your horse again and ride with her to the front of the estate. Kiku will show up and offer to help you get inside.", "achievement": false}, {"text": "CH2-24 Follow Kiku to an overlook and use your spyglass to determine your next steps. You can infiltrate the estate via the servants' quarters. Then go through the dark gardens to get to the guesthouse, then disguise yourself as a masked performer and get close to the Spider, who is in the main house. Keep following Kiku until you reach a hidden entrance.", "achievement": false}, {"text": "CH2-25 Once you're inside, either sneak past the soldiers or assassinate them with the help of Oyuki. The path is quite straightforward, save for the soldiers crawling all over the place. Once you reach the final camp, look to the shrine and boost Oyuki up the ledge so she can pull you up. Enter the guesthouse for a cutscene.", "achievement": false}, {"text": "CH2-26 Face the Spider in battle and defeat him. This also becomes your introduction to the Ghost Stance which you should use right off the bat. Try to damage The Spider using the Ghost Stance instead of taking out the outlaws with it to finish the fight quickly. Recharge your Ghost Stance by killing the outlaws and use it again on the Spider. Be sure not to get hit to prevent your Ghost Stance meter from resetting.", "achievement": false}, {"text": "CH2-27 With the Spider in custody, go to his cell at Matsumae Castle and speak to him after the cutscenes. After that, go to the stables to speak to Kiku, then ride for Orito Forest.", "achievement": false}, {"text": "CH2-28 Meet Jubei, Oyuki and Kiku at the Weeping Sakura Graveyard in the Orito Forest. Before ascending the mountain, Jubei will suggest sparring with Kiku to teach her how to fight. During the duel, it would be best to opt for defense and counterattack to win it since Kiku's attack patterns are pretty easy to predict.", "achievement": false}, {"text": "CH2-29 Travel with Jubei and Kiku to an overlook near the Seianji Temple where Oyuki is waiting. From the outlook, use your spyglass to observe Matsumae Castle, the lighthouse you liberated from the Dragon, and Oiso Fishing Village. Oyuki will then instruct you to make a map using these landmarks. Use the touchpad to draw the map and complete this objective.", "achievement": false}, {"text": "CH2-30 Help Kiku forage for mushrooms to eat for dinner. Keep an eye on the meter on top of the screen to check your progress. Return to the temple after that. On your way back, you'll encounter the wolf that's been tailing Atsu all throughout her journey. Follow it with Kiku to a hidden barricaded clearing. Watch the cutscene, follow the path forward back to Oyuki and Jubei, then make your way to Seianji Temple.", "achievement": false}, {"text": "CH2-31 The group will settle around a campfire for the night. Start a fire, cook some food, and write a song with your family on this rare, peaceful occasion.", "achievement": false}, {"text": "CH2-32 Meet Jubei and Commander Wada at the keep of Matsumae Castle and begin staging the Spider's execution to draw out the Dragon. Walk with the group until you get to the execution stage at the beach.", "achievement": false}, {"text": "CH2-33 As one would expect, the plan works, albeit with heavy consequences. The Dragon will come out of hiding and face you in battle, so defeat him.", "achievement": false}, {"text": "CH2-34 Race to Matsumae Castle and go after the Spider. Ignore or kill the soldier in your way, but make a beeline for the keep. Watch the cutscenes once you reach it. Afterwards, Atsu will automatically be at Seianji Temple. Rush ahead and follow the path to look for your family. Upon reaching the temple, only Kiku will be there, so speak to her. Once the next set of cutscenes are done, ride home with Kiku.", "achievement": false}]}, {"title": "Chapter 3 - Cost of Revenge", "chunks": [{"text": "Chapter 3 Quests: 1. Call of the Hunt 2. The Final Hunt of the Onryo", "achievement": false}]}, {"title": "Chapter 3 - Quest 1: Call of the Hunt", "chunks": [{"text": "1.1 Travel to Mount Yotei and speak to Hanbei once again to gain intel on where the Spider might be. He will tell you that as someone who lost a loved one, the Spider will likely be burying the Dragon at their family's burial ground in Tokachi Range.", "achievement": false}, {"text": "1.2 Fast travel to the Traveler's Rest near Tokachi Range and wait for the Spider. Watch the cutscene, but the Spider won't let up and will try to flee.", "achievement": false}, {"text": "1.3 Go after the Spider. The path ahead is straightforward, with gaps to squeeze through and handholds to climb. Do watch out for any attacks by the Spider, as he will occasionally stop and shoot at you with his rifle.", "achievement": false}, {"text": "1.4 The final battle with the Spider for answers about where Jubei and Oyuki are being held will take place. Be sure to dodge the very first shot he will make at the start of the battle, keep your health high, and defeat him.", "achievement": false}]}, {"title": "Chapter 3 - Quest 2: The Final Hunt of the Onryo", "chunks": [{"text": "MISSABLE WARNING: This is the point of no return. Starting this quest will render the rest of Ezo inaccessible until you complete it. Tie up any loose ends, finish whatever you need to, and upgrade your gear before proceeding.", "achievement": true}, {"text": "2.1 Fast travel to the Smoky Flower Grove and travel to the Central Ferry. He's located a little further ways north from the main dock itself. Speak to him to begin the quest. Take note that this is the point of no return. Starting this quest will render the rest of Ezo inaccessible until you complete it, so tie up any loose ends, finish up whatever you need to, and upgrade your gear to prepare before proceeding.", "achievement": false}, {"text": "2.2 As the Spider put it himself, you've got a climb ahead of you. After the cutscenes, keep climbing the handholds until you reach the top. Spot a fallen tree just ahead of you and use it to reach the ledge beyond. Once you reach the slope, pull out your spyglass and observe the field. Once all points of interest have been investigated, slide down the slope and into Koga Fortress.", "achievement": false}, {"text": "2.3 The front gate is heavily guarded with armored guards and flag bearers that are tougher than your average outlaw. As Atsu suggests, it would be best to do this quietly, so equip the Nine Tail Armor to avoid getting detected faster.", "achievement": false}, {"text": "2.4 Once you're on top of the cliff, use your grappling hook to swing to the handhold points until you reach the tower. Once you're there, use your spyglass to try and search for Jubei and Oyuki. Spot the execution site in the distance to find Matsumae soldiers being executed, and Jubei will likely be next.", "achievement": false}, {"text": "2.5 Right below the tower is another camp of soldiers. It's best to pass them through stealth again, but you can always get their attention and fight them head-on if you want.", "achievement": false}, {"text": "2.6 Your Ghost Stance will be ready as soon as you enter the execution site. Unleash it and slaughter all the soldiers in your path. Afterwards, a cutscene between Jubei and Atsu will play. Follow Jubei after and he will tell you that Oyuki is kept at a keep in the distance.", "achievement": false}, {"text": "2.7 Look to your left to spot a cliff and some handholds on the other side. Jump to the handholds and shimmy to the right, then drop safely on the ground.", "achievement": false}, {"text": "2.8 Use the fallen tree as a bridge and cross it to the other side. Grab the chest on the platform, then jump to the handholds ahead.", "achievement": false}, {"text": "2.9 Traverse the handholds to the right and grab the branch. Use it to boost yourself up, then climb to the top of the ledge.", "achievement": false}, {"text": "2.10 Brace yourself for battle. Squeeze through the opening and win the side-by-side Standoff with Jubei. Afterwards, kill every soldier in sight, then proceed further. Open the gate, then prepare to decimate the next wave of enemies coming your way. Watch out for the gunners and their explosives. Keep pushing forward to the keep, cutting down soldiers along the way.", "achievement": false}, {"text": "2.11 Once you reach the keep, Jubei will boost you up to the second floor. Wait for him to come through the front and kill enemies of his own, then assassinate the remaining enemies from above, saving Oyuki. She'll inform you that Saito is waiting for you \"where it all began\".", "achievement": false}, {"text": "2.12 Koga Fortress will self-destruct as Saito has anticipated your assault and sent his men to destroy it. Slide down and kill all the soldiers. Backup will soon arrive, with shield gunners blocking your path. Charge through the wall of guards along with your allies and rush to the exit.", "achievement": false}, {"text": "2.13 Return to Atsu's home for the final battle. With one target left, the objective is simple: kill Lord Saito and complete your revenge. If you keep on dying during the final duel, the game will ask you to Suspend the Duel or Continue. If you choose to suspend, you can save your progress and get out of the quest to do upgrades, other quests, etc., if you wish.", "achievement": false}]}];
+
+var checkedState = {};
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) checkedState = JSON.parse(raw);
+  } catch(e) { checkedState = {}; }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(checkedState));
+  } catch(e) {}
+}
+
+function chunkId(si, ci) { return 's' + si + 'c' + ci; }
+
+function isChecked(si, ci) { return !!checkedState[chunkId(si, ci)]; }
+
+function setChecked(si, ci, val) {
+  checkedState[chunkId(si, ci)] = val;
+  saveState();
+  updateChunkUI(si, ci);
+  updateSectionCounter(si);
+  updateOverallProgress();
+}
+
+function totalChunks() {
+  var t = 0;
+  for (var i = 0; i < SECTIONS.length; i++) t += SECTIONS[i].chunks.length;
+  return t;
+}
+
+function totalChecked() {
+  var t = 0;
+  for (var i = 0; i < SECTIONS.length; i++) {
+    for (var j = 0; j < SECTIONS[i].chunks.length; j++) {
+      if (isChecked(i, j)) t++;
+    }
+  }
+  return t;
+}
+
+function sectionChecked(si) {
+  var t = 0;
+  for (var j = 0; j < SECTIONS[si].chunks.length; j++) {
+    if (isChecked(si, j)) t++;
+  }
+  return t;
+}
+
+function updateOverallProgress() {
+  var total = totalChunks();
+  var done = totalChecked();
+  var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('header-pct').textContent = pct + '%';
+}
+
+function updateSectionCounter(si) {
+  var el = document.getElementById('counter-' + si);
+  if (!el) return;
+  var total = SECTIONS[si].chunks.length;
+  var done = sectionChecked(si);
+  if (done === total && total > 0) {
+    el.textContent = '\u2713 ' + done + '/' + total;
+    el.className = 'section-counter done';
+  } else {
+    el.textContent = done + '/' + total;
+    el.className = 'section-counter';
+  }
+}
+
+function updateChunkUI(si, ci) {
+  var el = document.getElementById('chunk-' + si + '-' + ci);
+  if (!el) return;
+  var checked = isChecked(si, ci);
+  var cb = el.querySelector('.chunk-checkbox');
+  if (checked) {
+    el.classList.add('done');
+    if (cb) cb.textContent = '\u2713';
+  } else {
+    el.classList.remove('done');
+    if (cb) cb.textContent = '';
+  }
+}
+
+function toggleChunk(si, ci) {
+  setChecked(si, ci, !isChecked(si, ci));
+}
+
+function toggleSection(si) {
+  var block = document.getElementById('section-block-' + si);
+  if (block) block.classList.toggle('open');
+}
+
+function expandAll() {
+  var blocks = document.querySelectorAll('.section-block');
+  for (var i = 0; i < blocks.length; i++) blocks[i].classList.add('open');
+}
+
+function collapseAll() {
+  var blocks = document.querySelectorAll('.section-block');
+  for (var i = 0; i < blocks.length; i++) blocks[i].classList.remove('open');
+}
+
+function resumeWalkthrough() {
+  for (var i = 0; i < SECTIONS.length; i++) {
+    for (var j = 0; j < SECTIONS[i].chunks.length; j++) {
+      if (!isChecked(i, j)) {
+        var block = document.getElementById('section-block-' + i);
+        if (block) block.classList.add('open');
+        var el = document.getElementById('chunk-' + i + '-' + j);
+        if (el) {
+          setTimeout(function(elem) {
+            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elem.classList.add('highlight-pulse');
+            setTimeout(function() { elem.classList.remove('highlight-pulse'); }, 1600);
+          }, 80, el);
+        }
+        return;
+      }
+    }
+  }
+  alert('All steps complete! Congratulations on completing Ghost of Yotei!');
+}
+
+function confirmReset() {
+  if (window.confirm('Reset all progress? This cannot be undone.')) {
+    checkedState = {};
+    saveState();
+    renderAll();
+  }
+}
+
+function renderAll() {
+  var content = document.getElementById('content');
+  var html = '';
+  for (var i = 0; i < SECTIONS.length; i++) {
+    var sec = SECTIONS[i];
+    html += '<div class="section-block" id="section-block-' + i + '">';
+    html += '<div class="section-header" onclick="toggleSection(' + i + ')">';
+    html += '<span class="section-arrow">&#9654;</span>';
+    html += '<span class="section-title">' + escHtml(sec.title) + '</span>';
+    html += '<span class="section-counter" id="counter-' + i + '">0/' + sec.chunks.length + '</span>';
+    html += '</div>';
+    html += '<div class="section-body">';
+    for (var j = 0; j < sec.chunks.length; j++) {
+      var chunk = sec.chunks[j];
+      var achClass = chunk.achievement ? ' achievement' : '';
+      html += '<div class="chunk-item' + achClass + '" id="chunk-' + i + '-' + j + '" onclick="toggleChunk(' + i + ',' + j + ')">';
+      html += '<div class="chunk-checkbox"></div>';
+      html += '<div class="chunk-text">';
+      if (chunk.achievement) html += '<span class="achievement-tag">\u26a0 Trophy / Achievement</span><br>';
+      html += escHtml(chunk.text);
+      html += '</div></div>';
+    }
+    html += '</div></div>';
+  }
+  content.innerHTML = html;
+  for (var si = 0; si < SECTIONS.length; si++) {
+    for (var ci = 0; ci < SECTIONS[si].chunks.length; ci++) {
+      if (isChecked(si, ci)) updateChunkUI(si, ci);
+    }
+    updateSectionCounter(si);
+  }
+  updateOverallProgress();
+}
+
+function escHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+loadState();
+renderAll();
+</script>
+</body>
+</html>
